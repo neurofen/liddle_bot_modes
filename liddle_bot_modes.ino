@@ -1,4 +1,4 @@
-#include <SoftwareSerial.h>
+#include "BlueSmirf.h"
 #include "Motor.h"
 #include "Ping.h"
 
@@ -15,11 +15,11 @@ Motor motor1(MOTOR1_ENABLE, MOTOR1_1, MOTOR1_2);
 Motor motor2(MOTOR2_ENABLE, MOTOR2_3, MOTOR2_4);
 
 Ping pingSensor(8);
-/* We receive date from bluetooth module over bluetoothTx 
-and send over bluetooth via bluetoothRx */
+
 const int BLUE_TX = 10;
 const int BLUE_RX = 11;
-SoftwareSerial bluetooth(BLUE_TX, BLUE_RX);
+
+BlueSmirf blueSmirf(BLUE_TX, BLUE_RX);
 
 const int MANUAL = 'M';
 const int AVOIDANCE = 'A';
@@ -37,32 +37,12 @@ char prevNavCommand;
 
 void setup() {
   Serial.begin(9600);
-  initialiseBluetooth();
-  
+  blueSmirf.Initialise();
   // start in manual mode
   mode = MANUAL;
   navCommand = STP;
   prevNavCommand = navCommand;
   Serial.println("Starting in MANUAL mode!");
-}
-
-/*
- * Before starting bluetooth, lower the baud rate
- * to 9600 so SoftwareSerial can reliably relay data
- */
-void initialiseBluetooth() {
-  bluetooth.begin(115200);
-  /* Enter bluetooth command mode $$$ */
-  bluetooth.print("$");
-  bluetooth.print("$");
-  bluetooth.print("$");
-  /* allow bluesmirf to indicate 
-  it's entered command mode by returning CMD */
-  delay(100); 
-  /* Change baud rate to 9600 */
-  bluetooth.println("U,9600,N"); 
-  bluetooth.begin(9600);
-  Serial.println("Bluetooth initialised at 9600 baud");
 }
 
 void loop() {
@@ -80,11 +60,11 @@ void loop() {
 }
 
 /*
- * Check for mode and nav commands, received over bluetooth
+ * Check for mode and nav commands, received over blueSmirf
  */
 void checkForCharsSentByBluetooth() {
-  if(bluetooth.available()) { 
-    char commandChar = bluetooth.read(); 
+  if(blueSmirf.Available()) { 
+    char commandChar = blueSmirf.Read(); 
     Serial.print("Received: ");
     Serial.println(commandChar);
     switch(commandChar) {
@@ -110,7 +90,7 @@ void checkForCharsSentByBluetooth() {
 void handleObstacleAvoidance() {
   int distanceFromObstacle = pingSensor.ObstacleDistanceInCM();
 
-  if(distanceFromObstacle > 3 && distanceFromObstacle <= 25) {
+  if(distanceFromObstacle > 2 && distanceFromObstacle <= 25) {
     Serial.print("Distance from obstacle: ");
     Serial.println(distanceFromObstacle);
     Serial.println("turn left");
